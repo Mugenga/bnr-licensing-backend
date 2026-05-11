@@ -10,6 +10,14 @@ function userDto(user) {
     email: user.email,
     roleId: user.role_id,
     roleName: user.Role?.name,
+    role: user.Role ? {
+      id: user.Role.id,
+      name: user.Role.name,
+      description: user.Role.description,
+      isSystemRole: user.Role.is_system_role,
+      permissions: user.Role.Permissions?.map((permission) => permission.name) || []
+    } : undefined,
+    organization: user.organization_name,
     organizationName: user.organization_name,
     status: user.status,
     createdAt: user.created_at || user.createdAt,
