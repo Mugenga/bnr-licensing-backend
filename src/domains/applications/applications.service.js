@@ -1,9 +1,11 @@
 const { sequelize } = require('../../db/models');
 const repository = require('./applications.repository');
+const documentsRepository = require('../documents/documents.repository');
 const auditService = require('../audit/audit.service');
 const notifications = require('../notifications/notifications.service');
 const { APPLICATION_STATUS, canTransition } = require('./applicationStates');
 const { PERMISSIONS } = require('./applicationPermissions');
+const { getRequiredDocuments } = require('./requiredDocuments');
 const { hasPermission } = require('../../middleware/permission.middleware');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../../utils/errors');
 
@@ -36,6 +38,17 @@ async function log(application, user, action, fromStatus, toStatus, metadata, tr
     to_status: toStatus,
     metadata
   }, transaction);
+}
+
+async function assertRequiredDocuments(application, transaction) {
+  const requiredDocuments = getRequiredDocuments(application.license_type);
+  if (!requiredDocuments.length) return;
+
+  const uploadedTypes = new Set(await documentsRepository.findDocumentTypesByApplication(application.id, transaction));
+  const missing = requiredDocuments.filter((document) => !uploadedTypes.has(document.key));
+  if (missing.length) {
+    throw new BadRequestError(`Missing required documents: ${missing.map((document) => document.label).join(', ')}.`);
+  }
 }
 
 async function withWorkflowLock(id, user, permissionName, toStatus, action, updater) {
@@ -71,8 +84,9 @@ async function createApplication(data, user) {
 }
 
 async function submitApplication(id, user) {
-  const application = await withWorkflowLock(id, user, PERMISSIONS.CREATE_APPLICATION, APPLICATION_STATUS.SUBMITTED, 'application_submitted', async (app) => {
+  const application = await withWorkflowLock(id, user, PERMISSIONS.CREATE_APPLICATION, APPLICATION_STATUS.SUBMITTED, 'application_submitted', async (app, transaction) => {
     assertOwner(app, user);
+    await assertRequiredDocuments(app, transaction);
   });
   await notifications.notifyApplicationSubmitted(application);
   return application;
@@ -153,6 +167,10 @@ async function getApplicationById(id, user) {
   throw new ForbiddenError();
 }
 
+function getRequiredDocumentsForLicense(licenseType) {
+  return getRequiredDocuments(licenseType);
+}
+
 module.exports = {
   createApplication,
   submitApplication,
@@ -163,5 +181,6 @@ module.exports = {
   approveApplication,
   rejectApplication,
   getApplications,
-  getApplicationById
+  getApplicationById,
+  getRequiredDocumentsForLicense
 };

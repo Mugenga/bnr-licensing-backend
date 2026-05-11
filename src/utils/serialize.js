@@ -52,6 +52,7 @@ function documentDto(document) {
     uploadedBy: document.uploaded_by,
     originalName: document.original_name,
     storedName: document.stored_name,
+    documentType: document.document_type,
     mimeType: document.mime_type,
     sizeBytes: document.size_bytes,
     version: document.version,

@@ -3,7 +3,10 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { documentDto } = require('../../utils/serialize');
 
 const upload = asyncHandler(async (req, res) => {
-  const documents = await service.uploadDocuments(req.params.id, req.files, req.user);
+  const documentTypes = Array.isArray(req.body.documentTypes)
+    ? req.body.documentTypes
+    : req.body.documentTypes ? [req.body.documentTypes] : [];
+  const documents = await service.uploadDocuments(req.params.id, req.files, req.user, documentTypes);
   res.status(201).json({ data: documents.map(documentDto) });
 });
 

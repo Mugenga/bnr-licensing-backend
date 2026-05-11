@@ -7,6 +7,7 @@ const { PERMISSIONS } = require('./applicationPermissions');
 const { createApplicationSchema, requestDocumentsSchema, decisionSchema } = require('./applications.schemas');
 
 router.use(requireAuth);
+router.get('/required-documents', controller.requiredDocuments);
 router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.post('/', requirePermission(PERMISSIONS.CREATE_APPLICATION), validate(createApplicationSchema), controller.create);

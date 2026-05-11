@@ -8,6 +8,7 @@ const list = asyncHandler(async (req, res) => {
 });
 
 const get = asyncHandler(async (req, res) => res.json({ data: applicationDto(await service.getApplicationById(req.params.id, req.user)) }));
+const requiredDocuments = asyncHandler(async (req, res) => res.json({ data: service.getRequiredDocumentsForLicense(req.query.licenseType) }));
 const create = asyncHandler(async (req, res) => res.status(201).json({ data: applicationDto(await service.createApplication(req.body, req.user)) }));
 const submit = asyncHandler(async (req, res) => res.json({ data: applicationDto(await service.submitApplication(req.params.id, req.user)) }));
 const review = asyncHandler(async (req, res) => res.json({ data: applicationDto(await service.startReview(req.params.id, req.user)) }));
@@ -17,4 +18,4 @@ const pendingApproval = asyncHandler(async (req, res) => res.json({ data: applic
 const approve = asyncHandler(async (req, res) => res.json({ data: applicationDto(await service.approveApplication(req.params.id, req.user, req.body.note)) }));
 const reject = asyncHandler(async (req, res) => res.json({ data: applicationDto(await service.rejectApplication(req.params.id, req.user, req.body.note)) }));
 
-module.exports = { list, get, create, submit, review, requestDocuments, resubmit, pendingApproval, approve, reject };
+module.exports = { list, get, requiredDocuments, create, submit, review, requestDocuments, resubmit, pendingApproval, approve, reject };

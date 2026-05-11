@@ -15,7 +15,7 @@ function canViewDocuments(application, user) {
     || (hasPermission(user, PERMISSIONS.VIEW_OWN_DOCUMENTS) && application.applicant_user_id === user.id);
 }
 
-async function uploadDocuments(applicationId, files, user) {
+async function uploadDocuments(applicationId, files, user, documentTypes = []) {
   if (!hasPermission(user, PERMISSIONS.UPLOAD_DOCUMENTS)) throw new ForbiddenError();
   if (!files?.length) throw new BadRequestError('At least one document is required.');
 
@@ -28,11 +28,12 @@ async function uploadDocuments(applicationId, files, user) {
     }
 
     const version = (await repository.maxVersion(applicationId, transaction)) + 1;
-    const documents = await repository.bulkCreate(files.map((file) => ({
+    const documents = await repository.bulkCreate(files.map((file, index) => ({
       application_id: applicationId,
       uploaded_by: user.id,
       original_name: file.originalname,
       stored_name: file.filename,
+      document_type: documentTypes[index] || null,
       mime_type: file.mimetype,
       size_bytes: file.size,
       version

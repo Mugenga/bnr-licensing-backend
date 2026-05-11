@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     uploaded_by: { type: DataTypes.UUID, allowNull: false },
     original_name: { type: DataTypes.STRING(255), allowNull: false },
     stored_name: { type: DataTypes.STRING(255), allowNull: false },
+    document_type: DataTypes.STRING(100),
     mime_type: { type: DataTypes.STRING(100), allowNull: false },
     size_bytes: { type: DataTypes.INTEGER, allowNull: false },
     version: { type: DataTypes.INTEGER, allowNull: false }

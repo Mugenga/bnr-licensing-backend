@@ -7,6 +7,15 @@ async function findByApplication(applicationId) {
   });
 }
 
+async function findDocumentTypesByApplication(applicationId, transaction) {
+  const documents = await ApplicationDocument.findAll({
+    attributes: ['document_type'],
+    where: { application_id: applicationId },
+    transaction
+  });
+  return documents.map((document) => document.document_type).filter(Boolean);
+}
+
 async function findById(id) {
   return ApplicationDocument.findByPk(id);
 }
@@ -20,4 +29,4 @@ async function bulkCreate(documents, transaction) {
   return ApplicationDocument.bulkCreate(documents, { transaction });
 }
 
-module.exports = { findByApplication, findById, maxVersion, bulkCreate };
+module.exports = { findByApplication, findDocumentTypesByApplication, findById, maxVersion, bulkCreate };
