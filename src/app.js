@@ -3,6 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const fs = require('fs');
 const path = require('path');
+
+// Import routes and middlewares
 const authRoutes = require('./domains/auth/auth.routes');
 const usersRoutes = require('./domains/users/users.routes');
 const rolesRoutes = require('./domains/roles/roles.routes');
@@ -19,6 +21,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
 app.get('/health', (req, res) => res.json({ data: { status: 'ok' } }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);

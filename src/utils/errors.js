@@ -1,3 +1,7 @@
+/******
+ * Custom error classes used accross the application for consistent error handling and responses.
+ */
+
 class AppError extends Error {
   constructor(message, statusCode, code) {
     super(message);
@@ -7,7 +11,7 @@ class AppError extends Error {
 }
 
 class BadRequestError extends AppError {
-  constructor(message = 'Bad request') {
+  constructor(message = 'Invalid request data') {
     super(message, 400, 'BAD_REQUEST');
   }
 }
@@ -19,7 +23,7 @@ class UnauthorizedError extends AppError {
 }
 
 class ForbiddenError extends AppError {
-  constructor(message = 'You do not have permission to perform this action.') {
+  constructor(message = 'You don\'t have the necessary permission to access this resource') {
     super(message, 403, 'FORBIDDEN');
   }
 }
@@ -31,7 +35,7 @@ class NotFoundError extends AppError {
 }
 
 class ConflictError extends AppError {
-  constructor(message = 'Conflict') {
+  constructor(message = 'Duplicate record exists') {
     super(message, 409, 'CONFLICT');
   }
 }

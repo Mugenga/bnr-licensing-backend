@@ -1,3 +1,8 @@
+/****
+ * 
+ * Functions to convert Sequelize model instances into a JSON friendly format for API responses.
+ */
+
 function userDto(user) {
   return {
     id: user.id,
