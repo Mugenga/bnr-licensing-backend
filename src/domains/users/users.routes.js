@@ -6,7 +6,7 @@ const { requirePermission } = require('../../middleware/permission.middleware');
 const { PERMISSIONS } = require('../applications/applicationPermissions');
 const { createUserSchema, updateUserSchema, statusSchema } = require('./users.schemas');
 
-// All user management routes require authentication and manage users permission
+// user routes are admin-only.
 router.use(requireAuth, requirePermission(PERMISSIONS.MANAGE_USERS));
 
 router.get('/', controller.list);

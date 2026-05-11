@@ -33,6 +33,7 @@ describe('audit logging', () => {
     const logs = await auditService.getApplicationAuditLogs(app.id, users.applicant);
     const requestLog = logs.find((log) => log.action === 'additional_documents_requested');
 
+    // Applicant summary hides most metadata, but this message must remain visible.
     expect(requestLog.metadata.message).toBe('Upload audited statements');
   });
 
@@ -50,6 +51,7 @@ describe('audit logging', () => {
     const { AuditLog } = global.testDb;
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     const log = await AuditLog.findOne({ where: { application_id: app.id } });
+    // Model hooks stand in for db trigger while tests run in pg-mem.
     await expect(log.update({ action: 'tampered' })).rejects.toThrow('append-only');
     await expect(log.destroy()).rejects.toThrow('append-only');
   });

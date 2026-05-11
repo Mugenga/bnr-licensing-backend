@@ -13,10 +13,12 @@ async function requireAuth(req, res, next) {
     const payload = verifyToken(token);
     const user = await User.findByPk(payload.userId, { include: [Role] });
 
+    // Token alone is not enough, user must still exist and be active.
     if (!user || user.status !== 'active') {
       throw new UnauthorizedError();
     }
 
+    // Load fresh permissions from DB on every request.
     const rolePermissions = await RolePermission.findAll({
       where: { role_id: user.role_id },
       include: [Permission]
@@ -26,6 +28,7 @@ async function requireAuth(req, res, next) {
     req.permissions = user.Role.Permissions.map((permission) => permission.name);
     return next();
   } catch (error) {
+    // Any jwt/db auth problem becomes same 401 response.
     return next(error.statusCode ? error : new UnauthorizedError());
   }
 }

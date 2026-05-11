@@ -15,7 +15,7 @@ function applicantAuditSummary(log) {
   };
 
   if (log.action === 'additional_documents_requested' && log.metadata?.message) {
-    summary.metadata = { message: log.metadata.message }; // applicant needs this message.
+    summary.metadata = { message: log.metadata.message }; // applicant needs this msg.
   }
 
   return summary;

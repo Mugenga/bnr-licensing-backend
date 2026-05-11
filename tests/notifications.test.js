@@ -8,6 +8,7 @@ describe('notifications', () => {
 
   beforeEach(async () => {
     jest.restoreAllMocks();
+    // Start each notification test with email disabled like local dev.
     env.email.enabled = false;
     env.email.host = '';
     env.email.port = '';
@@ -28,6 +29,7 @@ describe('notifications', () => {
   });
 
   test('workflow action still succeeds when email sending fails', async () => {
+    // Email failure should come back as value, not break submit workflow.
     jest.spyOn(emailService, 'sendEmail').mockResolvedValue({ failed: true, error: 'SMTP down' });
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     const submitted = await applicationService.submitApplication(app.id, users.applicant);
@@ -35,6 +37,7 @@ describe('notifications', () => {
   });
 
   test('approval notification attempts after successful approval', async () => {
+    // Approval email should only happen after the workflow reaches approved.
     const spy = jest.spyOn(emailService, 'sendEmail').mockResolvedValue({ sent: true });
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     await applicationService.submitApplication(app.id, users.applicant);
@@ -48,6 +51,7 @@ describe('notifications', () => {
   });
 
   test('additional documents notification includes officer message', async () => {
+    // Officer message must be inside email body, not just audit log.
     const spy = jest.spyOn(emailService, 'sendEmail').mockResolvedValue({ sent: true });
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     await applicationService.submitApplication(app.id, users.applicant);

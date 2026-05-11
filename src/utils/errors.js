@@ -1,6 +1,4 @@
-/******
- * Custom error classes used accross the application for consistent error handling and responses.
- */
+// small error classes so responses stay the same everywhere.
 
 class AppError extends Error {
   constructor(message, statusCode, code) {

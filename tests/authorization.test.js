@@ -24,9 +24,11 @@ describe('authorization and workflow rules', () => {
   test('draft applications are only visible to the owner applicant', async () => {
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
 
+    // Draft is private work-in-progress, staff should not open it directly.
     await expect(applicationService.getApplicationById(app.id, users.officer)).rejects.toMatchObject({ statusCode: 403 });
     await expect(applicationService.getApplicationById(app.id, users.superadmin)).rejects.toMatchObject({ statusCode: 403 });
 
+    // Draft should also not leak through list views.
     const officerList = await applicationService.getApplications({}, users.officer);
     const adminList = await applicationService.getApplications({}, users.superadmin);
 
@@ -62,6 +64,7 @@ describe('authorization and workflow rules', () => {
 
   test('same user cannot review and approve even if permissions allow it', async () => {
     const { Role, RolePermission, User, Permission } = global.testDb;
+    // This role is created directly to bypass role service validation on purpose.
     const role = await Role.create({ name: 'unsafe-direct', description: 'unsafe' });
     const permissions = await Permission.findAll({
       where: { name: [PERMISSIONS.REVIEW_APPLICATION, PERMISSIONS.MARK_PENDING_APPROVAL, PERMISSIONS.APPROVE_APPLICATION, PERMISSIONS.VIEW_ALL_APPLICATIONS] }
@@ -72,6 +75,7 @@ describe('authorization and workflow rules', () => {
     const rawUser = await User.create({ full_name: 'Unsafe User', email: 'unsafe@test.local', password_hash: users.applicant.password_hash, role_id: role.id });
     const unsafeUser = await global.testDb.loadUserWithPermissions(rawUser.id);
 
+    // Even with unsafe permissions, service must still block same-person decision.
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     await applicationService.submitApplication(app.id, users.applicant);
     await applicationService.startReview(app.id, unsafeUser);

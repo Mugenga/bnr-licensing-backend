@@ -14,6 +14,7 @@ describe('concurrent final decisions', () => {
     await applicationService.startReview(app.id, users.officer);
     await applicationService.markPendingApproval(app.id, users.officer);
 
+    // Fire approve and reject at same time, the row lock should let only one win.
     const results = await Promise.allSettled([
       applicationService.approveApplication(app.id, users.approver, 'Approved'),
       applicationService.rejectApplication(app.id, users.approver, 'Rejected')
@@ -22,6 +23,7 @@ describe('concurrent final decisions', () => {
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
 
+    // After both finish, state should be one final state and audit should have one decision.
     const finalApplication = await Application.findByPk(app.id);
     expect(['approved', 'rejected']).toContain(finalApplication.status);
 

@@ -9,6 +9,7 @@ const { hashPassword } = require('../src/utils/password');
 let synced = false;
 
 async function loadUserWithPermissions(id) {
+  // Tests call services directly, so user objects need permissions attached like real requests.
   const user = await User.findByPk(id, { include: [Role] });
   const rows = await RolePermission.findAll({ where: { role_id: user.role_id }, include: [Permission] });
   user.Role.Permissions = rows.map((row) => row.Permission);
@@ -17,9 +18,11 @@ async function loadUserWithPermissions(id) {
 
 async function seedTestData() {
   if (!synced) {
+    // First test creates all tables in pg-mem.
     await sequelize.sync({ force: true });
     synced = true;
   } else {
+    // Later tests reuse schema but clear data so each test starts clean.
     await AuditLog.destroy({ where: {}, truncate: true, cascade: true, hooks: false });
     await Application.destroy({ where: {}, truncate: true, cascade: true, hooks: false });
     await User.destroy({ where: {}, truncate: true, cascade: true, hooks: false });
@@ -28,11 +31,13 @@ async function seedTestData() {
     await Role.destroy({ where: {}, truncate: true, cascade: true, hooks: false });
   }
   const permissions = {};
+  // Seed every permission so tests can assemble normal and unsafe roles.
   for (const name of DEFAULT_PERMISSIONS) {
     permissions[name] = await Permission.create({ name, description: name });
   }
 
   const roles = {};
+  // Build the same default role map used by the real seeder.
   for (const name of Object.keys(ROLE_PERMISSION_MAP)) {
     roles[name] = await Role.create({ name, description: name, is_system_role: true });
     for (const permissionName of ROLE_PERMISSION_MAP[name]) {
@@ -41,6 +46,7 @@ async function seedTestData() {
   }
 
   const password_hash = await hashPassword('Password123!');
+  // A small user set is enough to test owner, officer, approver, and admin rules.
   const users = {
     applicant: await User.create({ full_name: 'Applicant', email: 'applicant@test.local', password_hash, role_id: roles.applicant.id, organization_name: 'Applicant Bank' }),
     otherApplicant: await User.create({ full_name: 'Other Applicant', email: 'other@test.local', password_hash, role_id: roles.applicant.id, organization_name: 'Other Bank' }),
@@ -49,6 +55,7 @@ async function seedTestData() {
     superadmin: await User.create({ full_name: 'Superadmin', email: 'superadmin@test.local', password_hash, role_id: roles.superadmin.id })
   };
 
+  // Reload users with permissions, otherwise service permission checks would fail.
   for (const key of Object.keys(users)) {
     users[key] = await loadUserWithPermissions(users[key].id);
   }

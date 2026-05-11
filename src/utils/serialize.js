@@ -1,7 +1,4 @@
-/****
- * 
- * Functions to convert Sequelize model instances into a JSON friendly format for API responses.
- */
+// keeps API camelCase while db stays snake_case.
 
 function userDto(user) {
   return {

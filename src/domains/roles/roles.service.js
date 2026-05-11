@@ -4,6 +4,7 @@ const { BadRequestError, NotFoundError } = require('../../utils/errors');
 const { DANGEROUS_PERMISSION_COMBINATIONS } = require('../applications/applicationPermissions');
 
 function assertSafePermissionSet(permissionNames) {
+  // Keep review and final decision powers separated.
   for (const [left, right] of DANGEROUS_PERMISSION_COMBINATIONS) {
     if (permissionNames.includes(left) && permissionNames.includes(right)) {
       throw new BadRequestError(`Role cannot contain both ${left} and ${right}.`);
@@ -29,6 +30,7 @@ async function createRole(data) {
       description: data.description,
       is_system_role: false
     }, { transaction });
+    // Attach permissions in same transaction as role creation.
     const permissions = await repository.findPermissions(data.permissionNames);
     await repository.setPermissions(role.id, permissions, transaction);
     return role.id;
@@ -43,6 +45,7 @@ async function updateRole(id, data) {
 
 async function deleteRole(id) {
   const role = await getRole(id);
+  // System roles are seeded roles, dont delete them.
   if (role.is_system_role) throw new BadRequestError('System roles cannot be deleted.');
   await repository.remove(role);
 }
@@ -55,10 +58,12 @@ async function setRolePermissions(id, permissionNames) {
   assertSafePermissionSet(permissionNames);
   await getRole(id);
   await sequelize.transaction(async (transaction) => {
+    // Load permissions by names sent from frontend.
     const permissions = await repository.findPermissions(permissionNames);
     if (permissions.length !== permissionNames.length) {
       throw new BadRequestError('One or more permissions do not exist.');
     }
+    // Replace permission list as one clean update.
     await repository.setPermissions(id, permissions, transaction);
   });
   return getRole(id);

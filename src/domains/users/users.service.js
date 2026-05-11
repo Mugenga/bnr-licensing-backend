@@ -13,6 +13,7 @@ async function getUser(id) {
 }
 
 async function createUser(data) {
+  // Hash password before saving user, never store plain password.
   return repository.create({
     full_name: data.fullName,
     email: data.email,
@@ -24,6 +25,7 @@ async function createUser(data) {
 }
 
 async function updateUser(id, data) {
+  // Keep existing values when frontend sends only some fields.
   const user = await getUser(id);
   return repository.update(user, {
     full_name: data.fullName ?? user.full_name,

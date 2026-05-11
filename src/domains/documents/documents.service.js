@@ -20,13 +20,17 @@ async function uploadDocuments(applicationId, files, user, documentTypes = []) {
   if (!files?.length) throw new BadRequestError('At least one document is required.');
 
   return sequelize.transaction(async (transaction) => {
+    // 1. Lock the application because upload creates audit and document version.
     const application = await applicationsRepository.findLocked(applicationId, transaction);
     if (!application) throw new NotFoundError('Application not found');
+    // 2. Applicant can only upload to their own application.
     if (application.applicant_user_id !== user.id) throw new ForbiddenError();
+    // 3. Upload is only allowed while draft or after officer asks more docs.
     if (!UPLOAD_STATES.includes(application.status)) {
       throw new BadRequestError('Documents can only be uploaded in draft or additional documents requested states.');
     }
 
+    // 4. All files in this request share same document version.
     const version = (await repository.maxVersion(applicationId, transaction)) + 1;
     const documents = await repository.bulkCreate(files.map((file, index) => ({
       application_id: applicationId,
@@ -39,6 +43,7 @@ async function uploadDocuments(applicationId, files, user, documentTypes = []) {
       version
     })), transaction);
 
+    // 5. Audit upload in same transaction so evidence is not missing.
     await auditService.createAuditLog({
       application_id: application.id,
       actor_user_id: user.id,
@@ -53,6 +58,7 @@ async function uploadDocuments(applicationId, files, user, documentTypes = []) {
 }
 
 async function getApplicationDocuments(applicationId, user) {
+  // Need application first so ownership can be checked.
   const application = await applicationsRepository.findById(applicationId);
   if (!application) throw new NotFoundError('Application not found');
   if (!canViewDocuments(application, user)) throw new ForbiddenError();
@@ -62,6 +68,7 @@ async function getApplicationDocuments(applicationId, user) {
 async function getDownload(documentId, user) {
   const document = await repository.findById(documentId);
   if (!document) throw new NotFoundError('Document not found');
+  // Check application access before giving file path.
   const application = await applicationsRepository.findById(document.application_id);
   if (!canViewDocuments(application, user)) throw new ForbiddenError();
   return {
