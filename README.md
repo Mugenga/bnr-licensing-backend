@@ -1,27 +1,32 @@
-# Bank Licensing & Compliance Portal Backend
+# Bank Licensing & Compliance Portal Backend 
 
 Welcome to the National Bank of Rwanda Backend API for managing commercial bank licensing & compliance applications.
 
-## NOTE: Frontend repo
+## 1 Other Resources
 
-Pleasee see [Frontend Link](https://github.com/Mugenga/bnr-licensing-frontend) to download and setup the frontend also. 
+- **Frontend Repository:** [bnr-licensing-frontend](https://github.com/Mugenga/bnr-licensing-frontend)
+- **Technical Design Document:** [docs/DESIGN.md](docs/DESIGN.md)
+- **API Documentation:** [docs/API.md](docs/API.md)
+- **Postman Documentation:** Add Postman documentation link here
 
-## Tech Stack
 
-1. **Framework:**  Node.js, Express, 
+
+## 2. Tech Stack
+
+1. **Framework:** Node.js, Express
 2. **Database and ORM:** PostgreSQL, Sequelize
-3. **Authentication:**  JWT, bcrypt-compatible password hashing through `bcryptjs`
+3. **Authentication:** JWT, bcrypt-compatible password hashing through `bcryptjs`
 4. **Test & Validation:** Joi, Jest
 
-## Architecture Summary
+## 3. Architecture Summary
 
-The backend is organized using the domain driven architecture. In this setup the application is divided into multiple domains (modules) based on the business logic behind the system, the domains include: auth, users, roles, applications, documents, audit, and notifications. 
+The backend is organized using the domain driven architecture. In this setup the application is divided into multiple domains/modules based on the business logic behind the system. The domains include: auth, users, roles, applications, documents, required documents, audit, and notifications. 
 
 Each domain owns its own routes, controllers, services, repositories, schemas, and constants where applicable. Controllers in each domain handle HTTP shape only; services enforce business rules while repositories handle database access.
 
-## Setup
+## 4. Setup
 
-Below are steps to setup and run the full application
+Below are steps to setup and run the full application.
 
 ```bash
 npm install
@@ -32,22 +37,28 @@ npm run dev
 npm test
 ```
 
-## Database Setup
+## 5. Database Setup
 
-This backend uses postgres as database, you need to make sure POSTGRES is instaled
+This backend uses PostgreSQL as database. You need to make sure PostgreSQL is installed.
 
-1. create a new database [bank licending](bank_licensing)
-2. Set `DATABASE_URL` in `.env` to a PostgreSQL database.
+1. Create a new database called `bank_licensing`.
+2. Set `DATABASE_URL` in `.env` to your PostgreSQL database connection string.
 
-## Environment Variables
+Example:
 
-- See `.env.example` for all variables. Required for normal development.
+```env
+DATABASE_URL=postgres://username:password@localhost:5432/bank_licensing
+```
 
-- Email notifications are optional for local development. If `EMAIL_ENABLED` is not true, email notification calls are skipped. If `EMAIL_ENABLED=true` you need to configure SMTP credentials of your choice, but it is still okay if not set. 
+## 6. Environment Variables
 
-## Database Commands
+* See `.env.example` for all variables required for normal development.
 
-database commands to migrate database models, seed test data and reset if needed.
+* Email notifications are optional for local development. If `EMAIL_ENABLED` is not true, email notification calls are skipped. If `EMAIL_ENABLED=true`, you need to configure SMTP credentials of your choice, but it is still okay if not set because the application workflow should not fail because of email setup.
+
+## 7. Database Commands
+
+Database commands to migrate database models, seed test data, and reset if needed.
 
 ```bash
 npm run db:migrate
@@ -55,7 +66,7 @@ npm run db:seed
 npm run db:reset
 ```
 
-## Default Users (only seeded while in development environment)
+## 8. Default Users (only seeded while in development environment)
 
 Super Admin:
 email: `superadmin@bnr.rw`
@@ -73,12 +84,21 @@ Approver:
 email: `approver@bnr.rw`
 password: `Password123!`
 
-## System Documentation
+## 9. Required Documents
 
-Please see [docs/]() for full documentation of the system [docs/API.md](docs/API.md).
+The backend includes support for setting the list of required documents for applications. This allows the system to define the documents an applicant is expected to submit during the application process.
 
-## Frontend repo
+The frontend uses this list when an applicant is creating or viewing an application, so document requirements are visible inside the workflow instead of being handled only through email or separate instructions. Officers can also review uploaded documents against the same required document list.
 
-Pleasee see [Frontend Link](https://github.com/Mugenga/bnr-licensing-frontend) to download and setup the frontend also. 
+This keeps document requirements clearer for both applicants and reviewers.
 
+## 10. System Documentation
 
+Please see [docs/](docs/) for full documentation of the system.
+
+* [Technical Design Document](docs/DESIGN.docx)
+* [API Documentation](docs/API.md)
+
+## 11. Frontend repo
+
+Please see [Frontend Link](https://github.com/Mugenga/bnr-licensing-frontend) to download and setup the frontend also.
