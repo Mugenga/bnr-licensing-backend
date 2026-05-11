@@ -1,3 +1,4 @@
+// All permissions related to application management
 const PERMISSIONS = {
   CREATE_APPLICATION: 'create_application',
   VIEW_OWN_APPLICATIONS: 'view_own_applications',
@@ -52,6 +53,7 @@ const ROLE_PERMISSION_MAP = {
   ]
 };
 
+// Define permissions that can not be combined for a single role due
 const DANGEROUS_PERMISSION_COMBINATIONS = [
   [PERMISSIONS.REVIEW_APPLICATION, PERMISSIONS.APPROVE_APPLICATION],
   [PERMISSIONS.REVIEW_APPLICATION, PERMISSIONS.REJECT_APPLICATION]
