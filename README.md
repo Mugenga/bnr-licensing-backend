@@ -2,7 +2,7 @@
 
 Welcome to the National Bank of Rwanda Backend API for managing commercial bank licensing & compliance applications.
 
-## 1 Other Resources
+## 1. Other Resources
 
 - **Frontend Repository:** [bnr-licensing-frontend](https://github.com/Mugenga/bnr-licensing-frontend)
 - **Technical Design Document:** [docs/DESIGN.md](docs/DESIGN.docx)
@@ -21,7 +21,7 @@ Welcome to the National Bank of Rwanda Backend API for managing commercial bank 
 
 The backend is organized using the domain driven architecture. In this setup the application is divided into multiple domains/modules based on the business logic behind the system. The domains include: auth, users, roles, applications, documents, required documents, audit, and notifications. 
 
-Each domain owns its own routes, controllers, services, repositories, schemas, and constants where applicable. Controllers in each domain handle HTTP shape only; services enforce business rules while repositories handle database access.
+Each domain owns its own routes, controllers, services, repositories, schemas, and constants where applicable. Controllers in each domain handle HTTP data only; services handles business rules while repositories handle database access.
 
 ## 4. Setup
 
