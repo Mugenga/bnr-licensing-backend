@@ -1,7 +1,7 @@
 'use strict';
 
 const bcrypt = require('bcryptjs');
-const { Op } = require('sequelize');
+const { Op, QueryTypes } = require('sequelize');
 const { v4: uuid } = require('uuid');
 const { DEFAULT_PERMISSIONS, ROLE_PERMISSION_MAP } = require('../../domains/applications/applicationPermissions');
 
@@ -35,15 +35,28 @@ async function cleanupSeedData(queryInterface, transaction) {
   }
 
   await queryInterface.bulkDelete('applications', { reference_number: { [Op.in]: SEED_APPLICATION_REFS } }, options);
-  await queryInterface.bulkDelete('users', { email: { [Op.in]: SEED_USER_EMAILS } }, options);
   await queryInterface.sequelize.query(
     `DELETE FROM role_permissions
      WHERE role_id IN (SELECT id FROM roles WHERE name IN (:roles))
-        OR permission_id IN (SELECT id FROM permissions WHERE name IN (:permissions));`,
+        AND permission_id IN (SELECT id FROM permissions WHERE name IN (:permissions));`,
     { ...options, replacements: { roles: SEED_ROLE_NAMES, permissions: DEFAULT_PERMISSIONS } }
   );
-  await queryInterface.bulkDelete('roles', { name: { [Op.in]: SEED_ROLE_NAMES } }, options);
-  await queryInterface.bulkDelete('permissions', { name: { [Op.in]: DEFAULT_PERMISSIONS } }, options);
+}
+
+async function findByName(queryInterface, table, names, transaction) {
+  const rows = await queryInterface.sequelize.query(
+    `SELECT id, name FROM ${table} WHERE name IN (:names);`,
+    { transaction, replacements: { names }, type: QueryTypes.SELECT }
+  );
+  return Object.fromEntries(rows.map((row) => [row.name, row]));
+}
+
+async function findUsersByEmail(queryInterface, emails, transaction) {
+  const rows = await queryInterface.sequelize.query(
+    'SELECT id, email FROM users WHERE email IN (:emails);',
+    { transaction, replacements: { emails }, type: QueryTypes.SELECT }
+  );
+  return Object.fromEntries(rows.map((row) => [row.email, row]));
 }
 
 module.exports = {
@@ -61,7 +74,7 @@ module.exports = {
         created_at: now,
         updated_at: now
       }));
-      await queryInterface.bulkInsert('permissions', permissionRows, { transaction });
+      await queryInterface.bulkInsert('permissions', permissionRows, { transaction, ignoreDuplicates: true });
 
       const roles = SEED_ROLE_NAMES.map((name) => ({
         id: uuid(),
@@ -71,10 +84,10 @@ module.exports = {
         created_at: now,
         updated_at: now
       }));
-      await queryInterface.bulkInsert('roles', roles, { transaction });
+      await queryInterface.bulkInsert('roles', roles, { transaction, ignoreDuplicates: true });
 
-      const roleByName = Object.fromEntries(roles.map((role) => [role.name, role]));
-      const permissionByName = Object.fromEntries(permissionRows.map((permission) => [permission.name, permission]));
+      const roleByName = await findByName(queryInterface, 'roles', SEED_ROLE_NAMES, transaction);
+      const permissionByName = await findByName(queryInterface, 'permissions', DEFAULT_PERMISSIONS, transaction);
       const rolePermissions = Object.entries(ROLE_PERMISSION_MAP).flatMap(([roleName, permissionNames]) =>
         permissionNames.map((permissionName) => ({
           id: uuid(),
@@ -103,9 +116,9 @@ module.exports = {
         created_at: now,
         updated_at: now
       }));
-      await queryInterface.bulkInsert('users', users, { transaction });
+      await queryInterface.bulkInsert('users', users, { transaction, ignoreDuplicates: true });
 
-      const userByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
+      const userByEmail = await findUsersByEmail(queryInterface, SEED_USER_EMAILS, transaction);
       const applications = [
         {
           id: uuid(),
