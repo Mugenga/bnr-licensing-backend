@@ -1,24 +1,59 @@
 'use strict';
 
-/***
- * 
- * This seeder populates the database with default permissions, roles, a superadmin user, and a sample application.
- * It also creates audit logs for the sample application to demonstrate the logging functionality.
- */
-
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 const { v4: uuid } = require('uuid');
 const { DEFAULT_PERMISSIONS, ROLE_PERMISSION_MAP } = require('../../domains/applications/applicationPermissions');
 
+const SEED_ROLE_NAMES = ['superadmin', 'applicant', 'officer', 'approver'];
+const SEED_USER_EMAILS = [
+  'superadmin@bnr.rw',
+  'applicant@bnr.rw',
+  'cnythia@bnr.rw',
+  'cynthia@bnr.rw',
+  'officer@bnr.rw',
+  'approver@bnr.rw'
+];
+const SEED_APPLICATION_REFS = ['APP-2026-0001', 'APP-2026-0002'];
+
+async function cleanupSeedData(queryInterface, transaction) {
+  const options = { transaction };
+
+  if (queryInterface.sequelize.getDialect() === 'postgres') {
+    await queryInterface.sequelize.query('ALTER TABLE audit_logs DISABLE TRIGGER USER;', options);
+  }
+
+  await queryInterface.sequelize.query(
+    `DELETE FROM audit_logs
+     WHERE application_id IN (SELECT id FROM applications WHERE reference_number IN (:references))
+        OR actor_user_id IN (SELECT id FROM users WHERE email IN (:emails));`,
+    { ...options, replacements: { references: SEED_APPLICATION_REFS, emails: SEED_USER_EMAILS } }
+  );
+
+  if (queryInterface.sequelize.getDialect() === 'postgres') {
+    await queryInterface.sequelize.query('ALTER TABLE audit_logs ENABLE TRIGGER USER;', options);
+  }
+
+  await queryInterface.bulkDelete('applications', { reference_number: { [Op.in]: SEED_APPLICATION_REFS } }, options);
+  await queryInterface.bulkDelete('users', { email: { [Op.in]: SEED_USER_EMAILS } }, options);
+  await queryInterface.sequelize.query(
+    `DELETE FROM role_permissions
+     WHERE role_id IN (SELECT id FROM roles WHERE name IN (:roles))
+        OR permission_id IN (SELECT id FROM permissions WHERE name IN (:permissions));`,
+    { ...options, replacements: { roles: SEED_ROLE_NAMES, permissions: DEFAULT_PERMISSIONS } }
+  );
+  await queryInterface.bulkDelete('roles', { name: { [Op.in]: SEED_ROLE_NAMES } }, options);
+  await queryInterface.bulkDelete('permissions', { name: { [Op.in]: DEFAULT_PERMISSIONS } }, options);
+}
+
 module.exports = {
   async up(queryInterface) {
-
-    // Use a transaction to ensure all inserts succeed or fail together
     const transaction = await queryInterface.sequelize.transaction();
     const now = new Date();
-    try {
 
-      // Insert default permissions
+    try {
+      await cleanupSeedData(queryInterface, transaction);
+
       const permissionRows = DEFAULT_PERMISSIONS.map((name) => ({
         id: uuid(),
         name,
@@ -28,7 +63,7 @@ module.exports = {
       }));
       await queryInterface.bulkInsert('permissions', permissionRows, { transaction });
 
-      const roles = ['superadmin', 'applicant', 'officer', 'approver'].map((name) => ({
+      const roles = SEED_ROLE_NAMES.map((name) => ({
         id: uuid(),
         name,
         description: `${name} role`,
@@ -51,12 +86,10 @@ module.exports = {
       );
       await queryInterface.bulkInsert('role_permissions', rolePermissions, { transaction });
 
-      // Insert default users with hashed passwords
-
       const passwordHash = await bcrypt.hash('Password123!', 12);
       const users = [
         ['Super Admin', 'superadmin@bnr.rw', 'superadmin', null],
-        ['Hoza Cynthia', 'cnythia@bnr.rw', 'applicant', 'I&M Bank Rwanda Limited'],
+        ['Hoza Cynthia', 'applicant@bnr.rw', 'applicant', 'I&M Bank Rwanda Limited'],
         ['Licensing Officer', 'officer@bnr.rw', 'officer', 'National Regulator'],
         ['Senior Approver', 'approver@bnr.rw', 'approver', 'National Regulator']
       ].map(([fullName, email, roleName, organizationName]) => ({
@@ -72,8 +105,6 @@ module.exports = {
       }));
       await queryInterface.bulkInsert('users', users, { transaction });
 
-      // Insert a sample application for the applicant user
-
       const userByEmail = Object.fromEntries(users.map((user) => [user.email, user]));
       const applications = [
         {
@@ -88,10 +119,22 @@ module.exports = {
           created_at: now,
           updated_at: now
         },
+        {
+          id: uuid(),
+          reference_number: 'APP-2026-0002',
+          applicant_user_id: userByEmail['applicant@bnr.rw'].id,
+          institution_name: 'Kigali Finance Trust',
+          license_type: 'Commercial Bank License',
+          description: 'Seed pending approval application.',
+          status: 'pending_approval',
+          reviewed_by: userByEmail['officer@bnr.rw'].id,
+          reviewed_at: now,
+          version: 2,
+          created_at: now,
+          updated_at: now
+        }
       ];
       await queryInterface.bulkInsert('applications', applications, { transaction });
-
-      // Insert audit logs for the sample application
 
       await queryInterface.bulkInsert('audit_logs', [
         {
@@ -123,19 +166,15 @@ module.exports = {
     }
   },
 
-  // The down function deletes all seeded data. It disables triggers on the audit_logs table to avoid issues with foreign key constraints when deleting logs
   async down(queryInterface) {
-    if (queryInterface.sequelize.getDialect() === 'postgres') {
-      await queryInterface.sequelize.query('ALTER TABLE audit_logs DISABLE TRIGGER USER;');
+    const transaction = await queryInterface.sequelize.transaction();
+
+    try {
+      await cleanupSeedData(queryInterface, transaction);
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-    await queryInterface.bulkDelete('audit_logs', null, {});
-    if (queryInterface.sequelize.getDialect() === 'postgres') {
-      await queryInterface.sequelize.query('ALTER TABLE audit_logs ENABLE TRIGGER USER;');
-    }
-    await queryInterface.bulkDelete('applications', null, {});
-    await queryInterface.bulkDelete('users', null, {});
-    await queryInterface.bulkDelete('role_permissions', null, {});
-    await queryInterface.bulkDelete('permissions', null, {});
-    await queryInterface.bulkDelete('roles', null, {});
   }
 };
