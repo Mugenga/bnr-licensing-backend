@@ -6,8 +6,7 @@ Welcome to the National Bank of Rwanda Backend API for managing commercial bank 
 
 - **Frontend Repository:** [bnr-licensing-frontend](https://github.com/Mugenga/bnr-licensing-frontend)
 - **Technical Design Document:** [docs/DESIGN.md](docs/DESIGN.md)
-- **API Documentation:** [docs/API.md](docs/API.md)
-- **Postman Documentation:** Add Postman documentation link here
+- **Postman API Documentation:** [Postman-api-documentation](https://documenter.getpostman.com/view/21281319/2sBXqNmyf6)
 
 
 
@@ -97,7 +96,7 @@ This keeps document requirements clearer for both applicants and reviewers.
 Please see [docs/](docs/) for full documentation of the system.
 
 * [Technical Design Document](docs/DESIGN.docx)
-* [API Documentation](docs/API.md)
+* [API Documentation](https://documenter.getpostman.com/view/21281319/2sBXqNmyf6)
 
 ## 11. Frontend repo
 
