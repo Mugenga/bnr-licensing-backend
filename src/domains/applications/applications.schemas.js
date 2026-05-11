@@ -14,4 +14,12 @@ const decisionSchema = Joi.object({
   note: Joi.string().min(3).required()
 });
 
-module.exports = { createApplicationSchema, requestDocumentsSchema, decisionSchema };
+const requiredDocumentsSchema = Joi.object({
+  licenseType: Joi.string().max(100).required(),
+  documents: Joi.array().items(Joi.object({
+    key: Joi.string().max(100).pattern(/^[a-z0-9_]+$/).required(),
+    label: Joi.string().max(150).required()
+  })).required()
+});
+
+module.exports = { createApplicationSchema, requestDocumentsSchema, decisionSchema, requiredDocumentsSchema };

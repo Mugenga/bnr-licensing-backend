@@ -1,13 +1,15 @@
 const { sequelize } = require('../../db/models');
 const repository = require('./applications.repository');
 const documentsRepository = require('../documents/documents.repository');
+const requiredDocumentsRepository = require('./requiredDocuments.repository');
 const auditService = require('../audit/audit.service');
 const notifications = require('../notifications/notifications.service');
 const { APPLICATION_STATUS, canTransition } = require('./applicationStates');
 const { PERMISSIONS } = require('./applicationPermissions');
-const { getRequiredDocuments } = require('./requiredDocuments');
+const { REQUIRED_DOCUMENTS, getRequiredDocuments } = require('./requiredDocuments');
 const { hasPermission } = require('../../middleware/permission.middleware');
 const { BadRequestError, ForbiddenError, NotFoundError } = require('../../utils/errors');
+const { Op } = require('sequelize');
 
 function assertPermission(user, permissionName) {
   if (!hasPermission(user, permissionName)) throw new ForbiddenError();
@@ -41,7 +43,7 @@ async function log(application, user, action, fromStatus, toStatus, metadata, tr
 }
 
 async function assertRequiredDocuments(application, transaction) {
-  const requiredDocuments = getRequiredDocuments(application.license_type);
+  const requiredDocuments = await getRequiredDocumentsForLicense(application.license_type, transaction);
   if (!requiredDocuments.length) return;
 
   const uploadedTypes = new Set(await documentsRepository.findDocumentTypesByApplication(application.id, transaction));
@@ -149,6 +151,10 @@ async function getApplications(query, user) {
 
   if (hasPermission(user, PERMISSIONS.VIEW_ALL_APPLICATIONS)) {
     if (query.applicantUserId) where.applicant_user_id = query.applicantUserId;
+    where[Op.or] = [
+      { status: { [Op.ne]: APPLICATION_STATUS.DRAFT } },
+      { applicant_user_id: user.id }
+    ];
   } else if (hasPermission(user, PERMISSIONS.VIEW_OWN_APPLICATIONS)) {
     where.applicant_user_id = user.id;
   } else {
@@ -162,13 +168,40 @@ async function getApplications(query, user) {
 async function getApplicationById(id, user) {
   const application = await repository.findById(id);
   if (!application) throw new NotFoundError('Application not found');
+  if (application.status === APPLICATION_STATUS.DRAFT && application.applicant_user_id !== user.id) throw new ForbiddenError();
   if (hasPermission(user, PERMISSIONS.VIEW_ALL_APPLICATIONS)) return application;
   if (hasPermission(user, PERMISSIONS.VIEW_OWN_APPLICATIONS) && application.applicant_user_id === user.id) return application;
   throw new ForbiddenError();
 }
 
-function getRequiredDocumentsForLicense(licenseType) {
+function requiredDocumentDto(document) {
+  return {
+    key: document.document_key,
+    label: document.label
+  };
+}
+
+async function getRequiredDocumentsForLicense(licenseType, transaction) {
+  const rows = await requiredDocumentsRepository.findByLicenseType(licenseType, transaction);
+  if (rows.length) return rows.map(requiredDocumentDto);
   return getRequiredDocuments(licenseType);
+}
+
+async function getAllRequiredDocuments() {
+  const rows = await requiredDocumentsRepository.findAll();
+  if (!rows.length) return REQUIRED_DOCUMENTS;
+  return rows.reduce((groups, row) => {
+    groups[row.license_type] = groups[row.license_type] || [];
+    groups[row.license_type].push(requiredDocumentDto(row));
+    return groups;
+  }, {});
+}
+
+async function setRequiredDocumentsForLicense(licenseType, documents) {
+  return sequelize.transaction(async (transaction) => {
+    const rows = await requiredDocumentsRepository.replaceForLicenseType(licenseType, documents, transaction);
+    return rows.map(requiredDocumentDto);
+  });
 }
 
 module.exports = {
@@ -182,5 +215,7 @@ module.exports = {
   rejectApplication,
   getApplications,
   getApplicationById,
-  getRequiredDocumentsForLicense
+  getRequiredDocumentsForLicense,
+  getAllRequiredDocuments,
+  setRequiredDocumentsForLicense
 };

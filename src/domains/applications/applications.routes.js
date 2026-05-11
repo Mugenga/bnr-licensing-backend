@@ -4,10 +4,11 @@ const validate = require('../../middleware/validate.middleware');
 const { requireAuth } = require('../../middleware/auth.middleware');
 const { requirePermission } = require('../../middleware/permission.middleware');
 const { PERMISSIONS } = require('./applicationPermissions');
-const { createApplicationSchema, requestDocumentsSchema, decisionSchema } = require('./applications.schemas');
+const { createApplicationSchema, requestDocumentsSchema, decisionSchema, requiredDocumentsSchema } = require('./applications.schemas');
 
 router.use(requireAuth);
 router.get('/required-documents', controller.requiredDocuments);
+router.put('/required-documents', requirePermission(PERMISSIONS.MANAGE_ROLES), validate(requiredDocumentsSchema), controller.setRequiredDocuments);
 router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.post('/', requirePermission(PERMISSIONS.CREATE_APPLICATION), validate(createApplicationSchema), controller.create);

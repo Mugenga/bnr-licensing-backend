@@ -4,6 +4,23 @@ const { ForbiddenError, NotFoundError } = require('../../utils/errors');
 const { hasPermission } = require('../../middleware/permission.middleware');
 const { PERMISSIONS } = require('../applications/applicationPermissions');
 
+function applicantAuditSummary(log) {
+  const summary = {
+    id: log.id,
+    application_id: log.application_id,
+    action: log.action,
+    from_status: log.from_status,
+    to_status: log.to_status,
+    created_at: log.created_at || log.createdAt
+  };
+
+  if (log.action === 'additional_documents_requested' && log.metadata?.message) {
+    summary.metadata = { message: log.metadata.message }; // applicant needs this message.
+  }
+
+  return summary;
+}
+
 async function createAuditLog(data, transaction) {
   return repository.create(data, { transaction });
 }
@@ -21,14 +38,7 @@ async function getApplicationAuditLogs(applicationId, currentUser) {
   const logs = await repository.findByApplication(applicationId);
   if (hasPermission(currentUser, PERMISSIONS.VIEW_AUDIT_LOGS)) return logs;
 
-  return logs.map((log) => ({
-    id: log.id,
-    application_id: log.application_id,
-    action: log.action,
-    from_status: log.from_status,
-    to_status: log.to_status,
-    created_at: log.created_at || log.createdAt
-  }));
+  return logs.map(applicantAuditSummary);
 }
 
 module.exports = { createAuditLog, getApplicationAuditLogs };

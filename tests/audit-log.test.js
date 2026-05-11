@@ -24,6 +24,18 @@ describe('audit logging', () => {
     expect(logs.find((log) => log.action === 'additional_documents_requested').metadata.message).toBe('Upload statements');
   });
 
+  test('applicant can see additional documents request message', async () => {
+    const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
+    await applicationService.submitApplication(app.id, users.applicant);
+    await applicationService.startReview(app.id, users.officer);
+    await applicationService.requestDocuments(app.id, users.officer, 'Upload audited statements');
+
+    const logs = await auditService.getApplicationAuditLogs(app.id, users.applicant);
+    const requestLog = logs.find((log) => log.action === 'additional_documents_requested');
+
+    expect(requestLog.metadata.message).toBe('Upload audited statements');
+  });
+
   test('creates audit log when approved', async () => {
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     await applicationService.submitApplication(app.id, users.applicant);

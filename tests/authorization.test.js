@@ -21,6 +21,19 @@ describe('authorization and workflow rules', () => {
     await expect(applicationService.getApplicationById(app.id, users.otherApplicant)).rejects.toMatchObject({ statusCode: 403 });
   });
 
+  test('draft applications are only visible to the owner applicant', async () => {
+    const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
+
+    await expect(applicationService.getApplicationById(app.id, users.officer)).rejects.toMatchObject({ statusCode: 403 });
+    await expect(applicationService.getApplicationById(app.id, users.superadmin)).rejects.toMatchObject({ statusCode: 403 });
+
+    const officerList = await applicationService.getApplications({}, users.officer);
+    const adminList = await applicationService.getApplications({}, users.superadmin);
+
+    expect(officerList.rows.some((row) => row.id === app.id)).toBe(false);
+    expect(adminList.rows.some((row) => row.id === app.id)).toBe(false);
+  });
+
   test('officer can review and cannot approve', async () => {
     const app = await applicationService.createApplication({ institutionName: 'Bank A', licenseType: 'License' }, users.applicant);
     await applicationService.submitApplication(app.id, users.applicant);
